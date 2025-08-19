@@ -14,8 +14,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from bs4 import BeautifulSoup
 
-EMAIL = "akashdeepp212@gmail.com"          
-PASSWORD = "AkkuDeep@99"   
+EMAIL = "your email id"          
+PASSWORD = "your password"   
 PROFILE_URL = "https://www.linkedin.com/in/harsh-o4/"  
 
 HEADLESS = False
@@ -448,3 +448,4 @@ if __name__ == "__main__":
     finally:
         if driver:
             driver.quit()
+

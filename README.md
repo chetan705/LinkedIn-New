@@ -1,12 +1,12 @@
 LinkedIn Profile Scraper
-This project is a Python-based web scraper implemented in a Jupyter notebook (Linkedin.ipynb) that extracts data from a LinkedIn profile, including full name, job title, company, location, bio, skills, recent activity, job history, and company growth signals. The scraped data is displayed in the terminal (or Jupyter output cell) and saved as JSON (linkedin_profile.json) and CSV (linkedin_profile.csv) files in the project folder.
+This project is a Python-based web scraper implemented in a python file (app.py) that extracts data from a LinkedIn profile, including full name, job title, company, location, bio, skills, recent activity, job history, and company growth signals. The scraped data is displayed in the terminal (or Jupyter output cell) and saved as JSON (linkedin_profile.json) and CSV (linkedin_profile.csv) files in the project folder.
 
 
 Setup Instructions
 Follow these steps to set up and run the project:
 1. Clone or Download the Project
 
-Download the project files (Linkedin.ipynb and requirements.txt) to a local directory.
+Download the project files (app.py and requirements.txt) to a local directory.
 
 
 
@@ -36,26 +36,41 @@ jupyter==1.0.0
 
 
 5. Configure the Notebook
-Open Linkedin.ipynb in Jupyter Notebook or JupyterLab and update the configuration cell with your LinkedIn credentials and target profile URL:
+Open app.py and update the configuration cell with your LinkedIn credentials and target profile URL:
 EMAIL = "your_email@example.com"
 PASSWORD = "your_password"
 PROFILE_URL = "https://www.linkedin.com/in/harsh-o4/"
 
 
 
-6. Run the Notebook
+6. Usage
+Run the scraper with the following command:
 
-Start Jupyter:In the terminal, with the virtual environment activated, run:
-jupyter notebook
+bash
+python app.py
+Security Validation Handling
+When you run the script, LinkedIn may display a CAPTCHA or 2FA prompt. The script will pause and display:
 
-
-
-Handle Security Validation (if prompted):If LinkedIn displays a CAPTCHA or 2FA prompt, the script will pause and display in the terminal/output cell:
+text
 Security validation (CAPTCHA/2FA) detected. Please complete it manually in the browser and press Enter here...
+Complete the CAPTCHA or 2FA in the browser window that opens
 
+Press Enter in the terminal to continue the scraping process
 
-Complete the CAPTCHA or 2FA in the browser.
-Press Enter in the terminal (or a separate terminal window if Jupyter is running) to continue.
+Proxy Configuration (Optional)
+To avoid security validation prompts, you can use proxies. The code currently doesn't include proxy support, but you can modify it to add this functionality.
+
+Free proxy sources:
+
+https://proxyscrape.com/free-proxy-list
+
+Paid proxy services:
+
+Bright Data ($7-15 per GB)
+
+Oxylabs ($7-15 per GB)
+
+Smartproxy ($7-15 per GB)
 
 
 
@@ -102,5 +117,6 @@ Prints the scraped data as JSON, formatted like:
 
 
 Confirms file save: "✅ Saved: linkedin_profile.json, linkedin_profile.csv".
+
 
 

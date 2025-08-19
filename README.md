@@ -36,6 +36,12 @@ jupyter==1.0.0
 
 
 5. Configure the Notebook
+Create .env file 
+Enter your LinkedIn Email and password
+LINKEDIN_EMAIL= "youremail@gmail.com"
+LINKEDIN_PASSWORD= "your password here"
+
+
 Open app.py and update the configuration cell with your LinkedIn credentials and target profile URL:
 EMAIL = "your_email@example.com"
 PASSWORD = "your_password"
@@ -43,7 +49,7 @@ PROFILE_URL = "https://www.linkedin.com/in/harsh-o4/"
 
 
 
-6. Usage
+7. Usage
 Run the scraper with the following command:
 
 bash
@@ -117,6 +123,7 @@ Prints the scraped data as JSON, formatted like:
 
 
 Confirms file save: "✅ Saved: linkedin_profile.json, linkedin_profile.csv".
+
 
 
 

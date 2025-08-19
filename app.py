@@ -3,6 +3,7 @@ import time
 import json
 import csv
 from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -13,10 +14,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
 
-EMAIL = "your email id"          
-PASSWORD = "your password"   
-PROFILE_URL = "https://www.linkedin.com/in/harsh-o4/"  
+# Load environment variables
+load_dotenv()
+EMAIL = os.getenv("LINKEDIN_EMAIL")
+PASSWORD = os.getenv("LINKEDIN_PASSWORD")
+PROFILE_URLS = [
+    "https://www.linkedin.com/in/harsh-o4/",
+    "https://www.linkedin.com/in/mohit-sharma-m1313/",  
+    "https://www.linkedin.com/in/mayank-gupta-offical/"  
+]
 
 HEADLESS = False
 
@@ -29,6 +37,9 @@ def build_driver() -> webdriver.Chrome:
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option("useAutomationExtension", False)
+    
+    ua = UserAgent()
+    chrome_options.add_argument(f"user-agent={ua.random}")
     
     return webdriver.Chrome(options=chrome_options)
 
@@ -56,7 +67,6 @@ def click_if_present(drv, by, value, timeout=3) -> bool:
         return False
 
 def click_all_see_more(drv):
-    
     patterns = [
         (By.CLASS_NAME, "inline-show-more-text__button"),
         (By.XPATH, "//button[contains(., 'See more')]"),
@@ -83,9 +93,6 @@ def click_all_see_more(drv):
                 except Exception:
                     pass
 
-
-# Login with manual security validation
-
 def linkedin_login(drv, email: str, password: str):
     try:
         drv.get("https://www.linkedin.com/login")
@@ -93,7 +100,7 @@ def linkedin_login(drv, email: str, password: str):
         drv.find_element(By.ID, "username").send_keys(email)
         drv.find_element(By.ID, "password").send_keys(password)
         drv.find_element(By.ID, "password").send_keys(Keys.RETURN)
-        time.sleep(3)  
+        time.sleep(3)
 
         # Check for security validation (CAPTCHA)
         try:
@@ -105,7 +112,7 @@ def linkedin_login(drv, email: str, password: str):
             )
             print(" Security validation (CAPTCHA/2FA) detected. Please complete it manually in the browser and press Enter here...")
             input("Press Enter after completing the security validation...")
-            time.sleep(2)  
+            time.sleep(2)
         except TimeoutException:
             print("ℹ No security validation detected.")
 
@@ -120,7 +127,6 @@ def linkedin_login(drv, email: str, password: str):
     except Exception as e:
         print(f" Login error: {e}")
         return False
-
 
 def scrape_top_card(drv) -> Dict[str, Any]:
     data = {
@@ -192,12 +198,9 @@ def scrape_top_card(drv) -> Dict[str, Any]:
 
     return data
 
-
-# About section
-
 def scrape_about(drv) -> str:
     try:
-        drv.get(drv.current_url.split("?")[0])  
+        drv.get(drv.current_url.split("?")[0])
         time.sleep(1)
         drv.execute_script("window.scrollTo(0, document.body.scrollHeight * 0.35);")
         time.sleep(1)
@@ -219,7 +222,6 @@ def scrape_about(drv) -> str:
         pass
     return "Not found"
 
-# Professional Insights
 def scrape_professional_insights(drv) -> List[str]:
     insights = []
     try:
@@ -241,9 +243,6 @@ def scrape_professional_insights(drv) -> List[str]:
     except Exception:
         return insights
 
-
-# Skills
-
 def scrape_skills(drv, profile_url: str) -> List[str]:
     skills = []
     try:
@@ -263,9 +262,6 @@ def scrape_skills(drv, profile_url: str) -> List[str]:
         return skills[:50]
     except Exception:
         return skills
-
-
-# Recent activity
 
 def scrape_recent_activity(drv, profile_url: str) -> List[str]:
     items = []
@@ -287,9 +283,6 @@ def scrape_recent_activity(drv, profile_url: str) -> List[str]:
         return items[:10]
     except Exception:
         return items
-
-
-# Experience
 
 def scrape_experience(drv, profile_url: str) -> List[Dict[str, str]]:
     jobs: List[Dict[str, str]] = []
@@ -320,9 +313,6 @@ def scrape_experience(drv, profile_url: str) -> List[Dict[str, str]]:
         return jobs[:30]
     except Exception:
         return jobs
-
-
-# Company growth signals
 
 def scrape_company_growth(drv) -> Dict[str, Any]:
     result = {"company_page": None, "followers": None, "employees_on_linkedin": None}
@@ -361,7 +351,6 @@ def scrape_company_growth(drv) -> Dict[str, Any]:
     except Exception:
         return result
 
-
 def scrape_profile_all(drv, profile_url: str) -> Dict[str, Any]:
     try:
         drv.get(profile_url)
@@ -389,7 +378,7 @@ def scrape_profile_all(drv, profile_url: str) -> Dict[str, Any]:
         }
         return out
     except Exception as e:
-        print(f" Error scraping profile: {e}")
+        print(f" Error scraping profile {profile_url}: {e}")
         return {
             "Full name": "Not found",
             "Job title": "Not found",
@@ -404,42 +393,51 @@ def scrape_profile_all(drv, profile_url: str) -> Dict[str, Any]:
             "profile_url": profile_url,
         }
 
-
-def save_json(data: Dict[str, Any], path: str = "linkedin_profile.json"):
+def save_json(data: List[Dict[str, Any]], path: str = "linkedin_profile.json"):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-def save_csv_flat(data: Dict[str, Any], path: str = "linkedin_profile.csv"):
-    row = {
-        "Full name": data.get("Full name", ""),
-        "Job title": data.get("Job title", ""),
-        "Company": data.get("Company", ""),
-        "Location": data.get("Location", ""),
-        "LinkedIn bio": data.get("LinkedIn bio", ""),
-        "Professional Insights": "; ".join(data.get("Professional Insights", []) or []),
-        "Tech stack": "; ".join(data.get("Tech stack", []) or []),
-        "Recent LinkedIn activity": "; ".join(data.get("Recent LinkedIn activity", []) or []),
-        "Job history changes": json.dumps(data.get("Job history changes", []), ensure_ascii=False),
-        "Company growth signals": json.dumps(data.get("Company growth signals", {}), ensure_ascii=False),
-        "profile_url": data.get("profile_url", ""),
-    }
+def save_csv_flat(data: List[Dict[str, Any]], path: str = "linkedin_profile.csv"):
+    if not data:
+        print("No data to save to CSV")
+        return
+    fieldnames = [
+        "Full name", "Job title", "Company", "Location", "LinkedIn bio",
+        "Professional Insights", "Tech stack", "Recent LinkedIn activity",
+        "Job history changes", "Company growth signals", "profile_url"
+    ]
     with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=list(row.keys()))
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerow(row)
-
-
-# Main
+        for profile in data:
+            row = {
+                "Full name": profile.get("Full name", ""),
+                "Job title": profile.get("Job title", ""),
+                "Company": profile.get("Company", ""),
+                "Location": profile.get("Location", ""),
+                "LinkedIn bio": profile.get("LinkedIn bio", ""),
+                "Professional Insights": "; ".join(profile.get("Professional Insights", []) or []),
+                "Tech stack": "; ".join(profile.get("Tech stack", []) or []),
+                "Recent LinkedIn activity": "; ".join(profile.get("Recent LinkedIn activity", []) or []),
+                "Job history changes": json.dumps(profile.get("Job history changes", []), ensure_ascii=False),
+                "Company growth signals": json.dumps(profile.get("Company growth signals", {}), ensure_ascii=False),
+                "profile_url": profile.get("profile_url", ""),
+            }
+            writer.writerow(row)
 
 if __name__ == "__main__":
     driver = None
     try:
         driver = build_driver()
         if linkedin_login(driver, EMAIL, PASSWORD):
-            result = scrape_profile_all(driver, PROFILE_URL)
-            print(json.dumps(result, indent=2, ensure_ascii=False))
-            save_json(result, "linkedin_profile.json")
-            save_csv_flat(result, "linkedin_profile.csv")
+            results = []
+            for profile_url in PROFILE_URLS:
+                print(f"\nScraping profile: {profile_url}")
+                result = scrape_profile_all(driver, profile_url)
+                results.append(result)
+                print(json.dumps(result, indent=2, ensure_ascii=False))
+            save_json(results, "linkedin_profile.json")
+            save_csv_flat(results, "linkedin_profile.csv")
             print("\n Saved: linkedin_profile.json, linkedin_profile.csv")
         else:
             print(" Scraping aborted due to login failure.")
@@ -448,4 +446,3 @@ if __name__ == "__main__":
     finally:
         if driver:
             driver.quit()
-

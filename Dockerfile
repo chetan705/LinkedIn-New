@@ -1,29 +1,70 @@
-# Use Python 3.10 base image to match your version
 FROM python:3.10-slim
 
-# Set working directory inside the container
+# System dependencies + Xvfb + Chrome runtime libraries
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    unzip \
+    ca-certificates \
+    fonts-liberation \
+    xdg-utils \
+    xvfb \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libxshmfence1 \
+    libxss1 \
+    libxkbcommon0 \
+    libgdk-pixbuf-2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome stable
+RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt-get update \
+    && apt-get install -y ./google-chrome-stable_current_amd64.deb \
+    && rm google-chrome-stable_current_amd64.deb
+
+# Install matching ChromeDriver (Chrome for Testing channel)
+RUN CHROME_VERSION=$(google-chrome --version | grep -oP '[0-9.]+') \
+    && MAJOR=${CHROME_VERSION%%.*} \
+    && CHROMEDRIVER_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${MAJOR}) \
+    && wget -q https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip \
+    && unzip -q chromedriver-linux64.zip \
+    && mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+    && chmod +x /usr/local/bin/chromedriver \
+    && rm -rf chromedriver-linux64 chromedriver-linux64.zip
+
+# Environment for Xvfb
+ENV DISPLAY=:99
+
+# Create non-root user to allow Chrome sandbox without --no-sandbox
+RUN useradd -ms /bin/bash appuser
+
+# Working directory
 WORKDIR /app
 
-# Install system dependencies for Selenium and Chrome with retry logic
-RUN echo "deb http://httpredir.debian.org/debian trixie main" > /etc/apt/sources.list && \
-    apt-get update && \
-    for i in 1 2 3; do apt-get install -y wget unzip curl gnupg2 && break || sleep 5; done && \
-    mkdir -p /etc/apt/keyrings && \
-    curl -sSL https://dl.google.com/linux/linux_signing_key.pub -o /etc/apt/keyrings/google-chrome.asc && \
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.asc] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
-    apt-get update && \
-    for i in 1 2 3; do apt-get install -y google-chrome-stable && break || sleep 5; done && \
-    wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/139.0.7258.128/chromedriver_linux64.zip && \
-    unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/ && \
-    rm /tmp/chromedriver.zip && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements.txt and install Python libraries
-COPY requirements.txt .
+# Install Python dependencies first (for better layer caching)
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the app code
-COPY app.py .
+# Copy application code
+COPY . .
 
-# Run the script when the container starts
-ENTRYPOINT ["python", "app.py"]
+# Ensure app files owned by non-root user
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Run the script under a virtual X display
+CMD ["xvfb-run", "-a", "python", "app.py"]
